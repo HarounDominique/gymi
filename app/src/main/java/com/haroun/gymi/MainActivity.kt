@@ -1,5 +1,6 @@
 package com.haroun.gymi
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,22 +36,43 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
 
                     NavHost(navController, startDestination = "main") {
+
                         composable("main") {
                             MainScreen(
-                                onEmpujeClick = { navController.navigate("push") }
+                                onEmpujeClick = { navController.navigate("push") },
+                                onTironClick = { navController.navigate("pull") },
+                                onPiernaClick = { navController.navigate("legs") }
                             )
                         }
-                        composable("push") { backStackEntry ->
-                            // Creamos el ViewModel usando Factory
-                            val pushViewModel: PushViewModel = viewModel(
+
+                        composable("push") {
+                            val vm: PushViewModel = viewModel(
                                 factory = PushViewModelFactory(
-                                    storage = ExerciseStorage(context = this@MainActivity)
+                                    context = this@MainActivity,
+                                    fileName = "push_tables"
                                 )
                             )
-                            PushScreen(
-                                onBack = { navController.popBackStack() },
-                                viewModel = pushViewModel
+                            PushScreen(onBack = { navController.popBackStack() }, viewModel = vm)
+                        }
+
+                        composable("pull") {
+                            val vm: PushViewModel = viewModel(
+                                factory = PushViewModelFactory(
+                                    context = this@MainActivity,
+                                    fileName = "pull_tables"
+                                )
                             )
+                            PushScreen(onBack = { navController.popBackStack() }, viewModel = vm)
+                        }
+
+                        composable("legs") {
+                            val vm: PushViewModel = viewModel(
+                                factory = PushViewModelFactory(
+                                    context = this@MainActivity,
+                                    fileName = "legs_tables"
+                                )
+                            )
+                            PushScreen(onBack = { navController.popBackStack() }, viewModel = vm)
                         }
                     }
                 }
@@ -60,41 +82,34 @@ class MainActivity : ComponentActivity() {
 }
 
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun MainScreen(onEmpujeClick: () -> Unit = {}) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize()
-    ) { innerPadding ->
+fun MainScreen(
+    onEmpujeClick: () -> Unit,
+    onTironClick: () -> Unit,
+    onPiernaClick: () -> Unit
+) {
+    Scaffold {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                onClick = onEmpujeClick,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Button(onClick = onEmpujeClick, modifier = Modifier.fillMaxWidth()) {
                 Text("Empuje")
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            Button(
-                onClick = { /* TODO: Tirón */ },
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Button(onClick = onTironClick, modifier = Modifier.fillMaxWidth()) {
                 Text("Tirón")
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            Button(
-                onClick = { /* TODO: Pierna */ },
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Button(onClick = onPiernaClick, modifier = Modifier.fillMaxWidth()) {
                 Text("Pierna")
             }
         }
@@ -105,6 +120,11 @@ fun MainScreen(onEmpujeClick: () -> Unit = {}) {
 @Composable
 fun MainScreenPreview() {
     GymiTheme {
-        MainScreen()
+        MainScreen(
+            onEmpujeClick = {},
+            onTironClick = {},
+            onPiernaClick = {}
+        )
     }
 }
+

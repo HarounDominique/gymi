@@ -25,11 +25,13 @@ fun PushScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ejercicios de Empuje") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.Add, contentDescription = "Volver")
-                    }
+                title = {
+                    Text(
+                        "Añadir ejercicio:",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontFeatureSettings = "smcp"
+                        )
+                    )
                 },
                 actions = {
                     IconButton(onClick = { showDialog = true }) {
