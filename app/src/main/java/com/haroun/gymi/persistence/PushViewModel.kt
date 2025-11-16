@@ -46,6 +46,21 @@ class PushViewModel(private val storage: ExerciseStorage) : ViewModel() {
         persist()
     }
 
+    fun addRowToTable(tableIndex: Int) {
+        if (tableIndex !in tables.indices) return
+
+        val table = tables[tableIndex]
+
+        // Crear nueva fila con 'columns' celdas vacías
+        val newRow = androidx.compose.runtime.mutableStateListOf<String>()
+        repeat(table.columns) { newRow.add("") }
+
+        table.data.add(newRow)  // Compose recompone automáticamente
+        table.rows += 1
+
+        persist()
+    }
+
     fun updateCell(tableIndex: Int, rowIndex: Int, colIndex: Int, newValue: String) {
         if (tableIndex !in tables.indices) return
         val table = tables[tableIndex]

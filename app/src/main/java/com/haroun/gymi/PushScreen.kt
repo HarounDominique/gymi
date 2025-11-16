@@ -51,6 +51,7 @@ fun PushScreen(
                     tableIndex = index,
                     table = table,
                     onAddColumn = { viewModel.addColumnToTable(index) },
+                    onAddRow = { viewModel.addRowToTable(index) },
                     onCellChange = { row, col, value ->
                         viewModel.updateCell(index, row, col, value)
                     }

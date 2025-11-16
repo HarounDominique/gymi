@@ -16,6 +16,7 @@ fun ExerciseExcelTable(
     tableIndex: Int,
     table: ExerciseTable,
     onAddColumn: () -> Unit,
+    onAddRow: () -> Unit,                         // <- AÑADIDO
     onCellChange: (row: Int, col: Int, value: String) -> Unit
 ) {
     Column(Modifier.fillMaxWidth()) {
@@ -72,5 +73,16 @@ fun ExerciseExcelTable(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Botón añadir fila/día
+        Button(
+            onClick = onAddRow,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Añadir día")
+        }
     }
 }
+
