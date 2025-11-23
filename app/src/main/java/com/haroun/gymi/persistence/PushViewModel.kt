@@ -1,82 +1,101 @@
+// app/src/main/java/com/haroun/gymi/persistence/PushViewModel.kt
 package com.haroun.gymi.persistence
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-class PushViewModel(private val storage: ExerciseStorage) : ViewModel() {
+/**
+ * Domain model (ExerciseTable) assumed to be in ExerciseTable.kt with mapping helpers to/from DTO.
+ * tables: MutableStateList so Compose observe insertions/changes.
+ */
+class PushViewModel(
+    private val storage: ExerciseStorage
+) : ViewModel() {
 
-    // AHORA ES OBSERVABLE POR COMPOSE
-    val tables = mutableStateListOf<ExerciseTable>()
+    val tables = mutableStateListOf<ExerciseTable>() // ExerciseTable is domain class with SnapshotStateList rows
 
     init {
-        // Cargar desde DataStore
-        viewModelScope.launch {
-            storage.getTables().collectLatest { savedDtos ->
+        // load persisted tables and map to domain model
+        storage.getTables()
+            .onEach { dtoList ->
+                // replace contents of tables to keep same list reference for observers
                 tables.clear()
-                savedDtos.forEach { dto ->
-                    tables.add(dtoToTable(dto))
-                }
+                tables.addAll(dtoList.map { it.toDomain() })
             }
+            .launchIn(viewModelScope)
+    }
+
+    private fun persist() {
+        // Serialize current tables to DTOs
+        viewModelScope.launch {
+            val dtos = tables.map { it.toDto() }
+            storage.saveTables(dtos)
         }
     }
 
-    fun addTable(name: String) {
-        if (name.isBlank()) return
-
-        val table = createEmptyExerciseTable(name.trim())
-
-        tables.add(table)  // Compose se recompone inmediatamente
+    fun addTable(newTable: ExerciseTable) {
+        tables.add(newTable)
         persist()
     }
 
-    fun addColumnToTable(index: Int) {
-        if (index !in tables.indices) return
+    fun removeTable(index: Int) {
+        if (index in tables.indices) {
+            tables.removeAt(index)
+            persist()
+        }
+    }
 
-        val table = tables[index]
-
-        // añadir una columna a cada fila
+    fun addColumnToTable(tableIndex: Int) {
+        if (tableIndex !in tables.indices) return
+        val table = tables[tableIndex]
+        val cols = table.columnCount
+        // for each row, add empty cell at end (use mutable lists to be observable)
         table.data.forEach { row ->
             row.add("")
         }
+        persist()
+    }
 
-        table.columns += 1
+    fun addCellToRow(tableIndex: Int, rowIndex: Int) {
+        val table = tables.getOrNull(tableIndex) ?: return
+        // Asegúrate de usar SnapshotStateList para que Compose detecte cambios
+        table.data[rowIndex].add("")
         persist()
     }
 
     fun addRowToTable(tableIndex: Int) {
         if (tableIndex !in tables.indices) return
-
         val table = tables[tableIndex]
-
-        // Crear nueva fila con 'columns' celdas vacías
-        val newRow = androidx.compose.runtime.mutableStateListOf<String>()
-        repeat(table.columns) { newRow.add("") }
-
-        table.data.add(newRow)  // Compose recompone automáticamente
-        table.rows += 1
-
+        val cols = table.columnCount
+        val newRow = mutableStateListOf<String>()
+        repeat(cols) { newRow.add("") }
+        // Append newRow to table.data (which must be SnapshotStateList)
+        table.data.add(newRow)
         persist()
     }
 
-    fun updateCell(tableIndex: Int, rowIndex: Int, colIndex: Int, newValue: String) {
+    fun updateCell(tableIndex: Int, row: Int, col: Int, value: String) {
         if (tableIndex !in tables.indices) return
         val table = tables[tableIndex]
-
-        if (rowIndex !in 0 until table.rows) return
-        if (colIndex !in 0 until table.columns) return
-
-        table.data[rowIndex][colIndex] = newValue
+        if (row !in table.data.indices) return
+        val rowList = table.data[row]
+        if (col !in rowList.indices) return
+        rowList[col] = value // SnapshotStateList assignment triggers recomposition
         persist()
     }
 
-    private fun persist() {
-        viewModelScope.launch {
-            storage.saveTables(
-                tables.map { tableToDto(it) }
-            )
+    // helper to create a default empty table (4 rows x 3 cols) as mentioned in spec
+    fun createDefaultTable(title: String = "Ejercicio"): ExerciseTable {
+        val rows = mutableStateListOf<androidx.compose.runtime.snapshots.SnapshotStateList<String>>()
+        repeat(4) {
+            val row = mutableStateListOf<String>()
+            repeat(3) { row.add("") }
+            rows.add(row)
         }
+        return ExerciseTable(title = title, data = rows)
     }
 }

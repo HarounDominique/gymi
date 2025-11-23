@@ -1,8 +1,12 @@
+// app/src/main/java/com/haroun/gymi/persistence/DataStores.kt
 package com.haroun.gymi.persistence
 
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 
-val Context.pushDataStore by preferencesDataStore("push_tables")
-val Context.pullDataStore by preferencesDataStore("pull_tables")
-val Context.legsDataStore by preferencesDataStore("legs_tables")
+// Top-level singletons: never create DataStore dynamically en runtime
+val Context.pushDataStore: DataStore<Preferences> by preferencesDataStore(name = "push_tables")
+val Context.pullDataStore: DataStore<Preferences> by preferencesDataStore(name = "pull_tables")
+val Context.legsDataStore: DataStore<Preferences> by preferencesDataStore(name = "legs_tables")
