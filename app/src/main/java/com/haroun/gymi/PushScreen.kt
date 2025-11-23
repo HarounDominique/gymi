@@ -44,7 +44,7 @@ fun PushScreen(
                     Button(
                         onClick = {
                             // navigate to detail with index
-                            navController.navigate("push/exercise/$index")
+                            navController.navigate("push/exercise/${index.toString()}")
                         },
                         modifier = Modifier
                             .fillMaxWidth()

@@ -2,6 +2,7 @@
 package com.haroun.gymi.persistence
 
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
@@ -10,7 +11,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Domain model (ExerciseTable) assumed to be in ExerciseTable.kt with mapping helpers to/from DTO.
- * tables: MutableStateList so Compose observe insertions/changes.
+ * tables: MutableStateList so Compose observes insertions/changes.
  */
 class PushViewModel(
     private val storage: ExerciseStorage
@@ -90,7 +91,7 @@ class PushViewModel(
 
     // helper to create a default empty table (4 rows x 3 cols) as mentioned in spec
     fun createDefaultTable(title: String = "Ejercicio"): ExerciseTable {
-        val rows = mutableStateListOf<androidx.compose.runtime.snapshots.SnapshotStateList<String>>()
+        val rows = mutableStateListOf<SnapshotStateList<String>>()
         repeat(4) {
             val row = mutableStateListOf<String>()
             repeat(3) { row.add("") }
@@ -98,4 +99,7 @@ class PushViewModel(
         }
         return ExerciseTable(title = title, data = rows)
     }
+
+    // devuelve el número de tablas (ejercicios) disponibles
+    fun getTableSize(): Int = tables.size
 }

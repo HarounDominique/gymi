@@ -7,11 +7,12 @@ import androidx.lifecycle.ViewModelProvider
 
 class PushViewModelFactory(
     private val context: Context,
-    private val fileName: String // expect "push_tables" | "pull_tables" | "legs_tables" or similar token
+    private val fileName: String // puede ser "push_tables", "pull_tables", "legs_tables" u otro
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val dataStore = when (fileName) {
+        // Obtenemos el DataStore según el fileName
+        val dataStore = when (fileName.lowercase()) {
             "push_tables" -> context.pushDataStore
             "pull_tables" -> context.pullDataStore
             "legs_tables" -> context.legsDataStore
@@ -19,6 +20,7 @@ class PushViewModelFactory(
         }
 
         val storage = ExerciseStorage(dataStore)
+
         @Suppress("UNCHECKED_CAST")
         return PushViewModel(storage) as T
     }

@@ -1,25 +1,23 @@
-// app/src/main/java/com/haroun/gymi/MainActivity.kt
 package com.haroun.gymi
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import com.haroun.gymi.ui.theme.GymiTheme
 import com.haroun.gymi.ui.push.PushScreen
 import com.haroun.gymi.ui.push.PushExerciseDetailScreen
@@ -50,6 +48,7 @@ fun AppNavHost() {
 
     NavHost(navController = navController, startDestination = "main") {
 
+        // --- MAIN SCREEN ---
         composable("main") {
             MainScreen(
                 onEmpujeClick = { navController.navigate("push") },
@@ -58,57 +57,60 @@ fun AppNavHost() {
             )
         }
 
-        // --- PUSH main screen ---
-        composable("push") {
-            val vm: PushViewModel = viewModel(
-                factory = PushViewModelFactory(context = context, fileName = "push_tables")
-            )
-            PushScreen(navController = navController, viewModel = vm)
-        }
-
-        // --- PUSH detail screen ---
-        composable(
-            route = "push/exercise/{index}",
-            arguments = listOf(navArgument("index") { type = NavType.IntType })
-        ) { backStackEntry ->
-
-            // 👇 CORREGIDO: remember kullanımı con key
-            val parentEntry = remember(key1 = navController) {
-                navController.getBackStackEntry("push")
+        // --- CATEGORY SCREENS ---
+        listOf("push", "pull", "legs").forEach { type ->
+            composable(type) {
+                val fileName = when (type) {
+                    "push" -> "push_tables"
+                    "pull" -> "pull_tables"
+                    else -> "legs_tables"
+                }
+                val vm: PushViewModel = viewModel(factory = PushViewModelFactory(context, fileName))
+                PushScreen(navController, vm)
             }
-
-            val vm: PushViewModel = viewModel(
-                parentEntry,
-                factory = PushViewModelFactory(context = context, fileName = "push_tables")
-            )
-
-            val index = backStackEntry.arguments?.getInt("index") ?: 0
-            PushExerciseDetailScreen(
-                navController = navController,
-                viewModel = vm,
-                tableIndex = index
-            )
         }
 
-        // --- PULL screen ---
-        composable("pull") {
-            val vm: PushViewModel = viewModel(
-                factory = PushViewModelFactory(context = context, fileName = "pull_tables")
-            )
-            PushScreen(navController = navController, viewModel = vm)
-        }
+        // --- DETAIL SCREENS ---
+        listOf("push", "pull", "legs").forEach { routeType ->  // Cambiado de 'type' a 'routeType'
+            composable(
+                route = "$routeType/exercise/{index}",
+                arguments = listOf(
+                    navArgument("index") {
+                        type = NavType.StringType  // Ahora 'type' se refiere a la propiedad del navArgument
+                    }
+                )
+            ) { backStackEntry ->
+                val fileName = when (routeType) {  // Cambiado de 'type' a 'routeType'
+                    "push" -> "push_tables"
+                    "pull" -> "pull_tables"
+                    else -> "legs_tables"
+                }
+                val vm: PushViewModel = viewModel(factory = PushViewModelFactory(context, fileName))
 
-        // --- LEGS screen ---
-        composable("legs") {
-            val vm: PushViewModel = viewModel(
-                factory = PushViewModelFactory(context = context, fileName = "legs_tables")
-            )
-            PushScreen(navController = navController, viewModel = vm)
+                val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: -1
+                val size = vm.tables.size
+
+                if (index !in 0 until size) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Ejercicio no encontrado")
+                    }
+                    return@composable
+                }
+
+                PushExerciseDetailScreen(
+                    navController = navController,
+                    viewModel = vm,
+                    tableIndex = index
+                )
+            }
         }
     }
 }
 
-/* Keep your MainScreen composable here or import it; same as previous */
+/* MainScreen composable */
 @Composable
 fun MainScreen(
     onEmpujeClick: () -> Unit,
