@@ -66,17 +66,17 @@ fun AppNavHost() {
 
         // --- PUSH ---
         composable("push") {
-            val pushViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<PushViewModel>(
+            val pushViewModel = viewModel<PushViewModel>(
                 factory = PushViewModelFactory(context, "push_tables")
             )
-            PushScreen(navController, pushViewModel as PushViewModel)
+            PushScreen(navController, pushViewModel)
         }
 
         composable(
             "push/exercise/{index}",
             arguments = listOf(navArgument("index") { this.type = NavType.StringType })
         ) { backStackEntry ->
-            val pushViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<PushViewModel>(
+            val pushViewModel = viewModel<PushViewModel>(
                 factory = PushViewModelFactory(context, "push_tables")
             )
             val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: -1
@@ -91,22 +91,22 @@ fun AppNavHost() {
                 return@composable
             }
 
-            PushExerciseDetailScreen(navController, pushViewModel as PushViewModel, index)
+            PushExerciseDetailScreen(navController, pushViewModel, index)
         }
 
         // --- PULL ---
         composable("pull") {
-            val pullViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<PullViewModel>(
+            val pullViewModel = viewModel<PullViewModel>(
                 factory = PullViewModelFactory(context, "pull_tables")
             )
-            PushScreen(navController, pullViewModel as PushViewModel)
+            PushScreen(navController, pullViewModel)
         }
 
         composable(
             "pull/exercise/{index}",
             arguments = listOf(navArgument("index") { this.type = NavType.StringType })
         ) { backStackEntry ->
-            val pullViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<PullViewModel>(
+            val pullViewModel = viewModel<PullViewModel>(
                 factory = PullViewModelFactory(context, "pull_tables")
             )
             val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: -1
@@ -121,22 +121,22 @@ fun AppNavHost() {
                 return@composable
             }
 
-            PushExerciseDetailScreen(navController, pullViewModel as PushViewModel, index)
+            PushExerciseDetailScreen(navController, pullViewModel, index)
         }
 
         // --- LEGS ---
         composable("legs") {
-            val legsViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<LegsViewModel>(
+            val legsViewModel = viewModel<LegsViewModel>(
                 factory = LegsViewModelFactory(context, "legs_tables")
             )
-            PushScreen(navController, legsViewModel as PushViewModel)
+            PushScreen(navController, legsViewModel)
         }
 
         composable(
             "legs/exercise/{index}",
             arguments = listOf(navArgument("index") { this.type = NavType.StringType })
         ) { backStackEntry ->
-            val legsViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<LegsViewModel>(
+            val legsViewModel = viewModel<LegsViewModel>(
                 factory = LegsViewModelFactory(context, "legs_tables")
             )
             val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: -1
@@ -151,7 +151,7 @@ fun AppNavHost() {
                 return@composable
             }
 
-            PushExerciseDetailScreen(navController, legsViewModel as PushViewModel, index)
+            PushExerciseDetailScreen(navController, legsViewModel, index)
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.haroun.gymi.persistence.legs
 
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.haroun.gymi.persistence.ExerciseStorage
@@ -79,9 +80,15 @@ class LegsViewModel(
         }
     }
 
+    fun addCellToRow(tableIndex: Int, rowIndex: Int) {
+        val table = tables.getOrNull(tableIndex) ?: return
+        table.data[rowIndex].add("")
+        persist()
+    }
+
     // Crear tabla por defecto (4 filas x 3 columnas)
     fun createDefaultTable(title: String = "Ejercicio"): ExerciseTable {
-        val rows = mutableStateListOf<androidx.compose.runtime.snapshots.SnapshotStateList<String>>()
+        val rows = mutableStateListOf<SnapshotStateList<String>>()
         repeat(4) {
             val row = mutableStateListOf<String>()
             repeat(3) { row.add("") }
@@ -89,4 +96,6 @@ class LegsViewModel(
         }
         return ExerciseTable(title = title, data = rows)
     }
+
+    fun getTableSize(): Int = tables.size
 }

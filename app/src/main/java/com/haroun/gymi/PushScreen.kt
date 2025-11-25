@@ -8,20 +8,38 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.haroun.gymi.persistence.ExerciseViewModel
 import com.haroun.gymi.persistence.push.PushViewModel
+import com.haroun.gymi.persistence.pull.PullViewModel
+import com.haroun.gymi.persistence.legs.LegsViewModel
 import com.haroun.gymi.ui.components.SmallCapsTopAppBar
 
 @Composable
 fun PushScreen(
     navController: NavController,
-    viewModel: PushViewModel
+    viewModel: ExerciseViewModel
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
 
+    // Determinar la ruta base según el tipo de ViewModel
+    val routeBase = when (viewModel) {
+        is PushViewModel -> "push"
+        is PullViewModel -> "pull"
+        is LegsViewModel -> "legs"
+        else -> "push"
+    }
+
+    val screenTitle = when (viewModel) {
+        is PushViewModel -> "Empuje"
+        is PullViewModel -> "Tirón"
+        is LegsViewModel -> "Pierna"
+        else -> "Ejercicios"
+    }
+
     Scaffold(
         topBar = {
-            SmallCapsTopAppBar(title = "Empuje")
+            SmallCapsTopAppBar(title = screenTitle)
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
@@ -42,8 +60,7 @@ fun PushScreen(
                     val t = viewModel.tables[index]
                     Button(
                         onClick = {
-                            // navigate to detail with index
-                            navController.navigate("push/exercise/${index.toString()}")
+                            navController.navigate("$routeBase/exercise/$index")
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -69,17 +86,38 @@ fun PushScreen(
             },
             confirmButton = {
                 Button(onClick = {
-                    val newTable = viewModel.createDefaultTable(
-                        title = title.ifBlank { "Ejercicio" }
-                    )
-                    viewModel.addTable(newTable)
+                    // Cast seguro según el tipo de ViewModel
+                    when (viewModel) {
+                        is PushViewModel -> {
+                            val newTable = viewModel.createDefaultTable(
+                                title = title.ifBlank { "Ejercicio" }
+                            )
+                            viewModel.addTable(newTable)
+                        }
+                        is PullViewModel -> {
+                            val newTable = viewModel.createDefaultTable(
+                                title = title.ifBlank { "Ejercicio" }
+                            )
+                            viewModel.addTable(newTable)
+                        }
+                        is LegsViewModel -> {
+                            val newTable = viewModel.createDefaultTable(
+                                title = title.ifBlank { "Ejercicio" }
+                            )
+                            viewModel.addTable(newTable)
+                        }
+                    }
+                    title = ""
                     showDialog = false
                 }) {
                     Text("Guardar")
                 }
             },
             dismissButton = {
-                Button(onClick = { showDialog = false }) {
+                Button(onClick = {
+                    title = ""
+                    showDialog = false
+                }) {
                     Text("Cancelar")
                 }
             }

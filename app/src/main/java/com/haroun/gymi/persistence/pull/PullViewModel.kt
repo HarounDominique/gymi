@@ -1,6 +1,7 @@
 package com.haroun.gymi.persistence.pull
 
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.haroun.gymi.persistence.ExerciseStorage
@@ -72,8 +73,14 @@ class PullViewModel(
         }
     }
 
+    fun addCellToRow(tableIndex: Int, rowIndex: Int) {
+        val table = tables.getOrNull(tableIndex) ?: return
+        table.data[rowIndex].add("")
+        persist()
+    }
+
     fun createDefaultTable(title: String = "Ejercicio"): ExerciseTable {
-        val rows = mutableStateListOf<androidx.compose.runtime.snapshots.SnapshotStateList<String>>()
+        val rows = mutableStateListOf<SnapshotStateList<String>>()
         repeat(4) {
             val row = mutableStateListOf<String>()
             repeat(3) { row.add("") }
