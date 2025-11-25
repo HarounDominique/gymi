@@ -13,6 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -21,8 +22,14 @@ import androidx.navigation.NavType
 import com.haroun.gymi.ui.theme.GymiTheme
 import com.haroun.gymi.ui.push.PushScreen
 import com.haroun.gymi.ui.push.PushExerciseDetailScreen
-import com.haroun.gymi.persistence.PushViewModel
-import com.haroun.gymi.persistence.PushViewModelFactory
+
+// Factories y ViewModels separados
+import com.haroun.gymi.persistence.push.PushViewModel
+import com.haroun.gymi.persistence.push.PushViewModelFactory
+import com.haroun.gymi.persistence.pull.PullViewModel
+import com.haroun.gymi.persistence.pull.PullViewModelFactory
+import com.haroun.gymi.persistence.legs.LegsViewModel
+import com.haroun.gymi.persistence.legs.LegsViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,55 +64,94 @@ fun AppNavHost() {
             )
         }
 
-        // --- CATEGORY SCREENS ---
-        listOf("push", "pull", "legs").forEach { type ->
-            composable(type) {
-                val fileName = when (type) {
-                    "push" -> "push_tables"
-                    "pull" -> "pull_tables"
-                    else -> "legs_tables"
-                }
-                val vm: PushViewModel = viewModel(factory = PushViewModelFactory(context, fileName))
-                PushScreen(navController, vm)
-            }
+        // --- PUSH ---
+        composable("push") {
+            val pushViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<PushViewModel>(
+                factory = PushViewModelFactory(context, "push_tables")
+            )
+            PushScreen(navController, pushViewModel as PushViewModel)
         }
 
-        // --- DETAIL SCREENS ---
-        listOf("push", "pull", "legs").forEach { routeType ->  // Cambiado de 'type' a 'routeType'
-            composable(
-                route = "$routeType/exercise/{index}",
-                arguments = listOf(
-                    navArgument("index") {
-                        type = NavType.StringType  // Ahora 'type' se refiere a la propiedad del navArgument
-                    }
-                )
-            ) { backStackEntry ->
-                val fileName = when (routeType) {  // Cambiado de 'type' a 'routeType'
-                    "push" -> "push_tables"
-                    "pull" -> "pull_tables"
-                    else -> "legs_tables"
+        composable(
+            "push/exercise/{index}",
+            arguments = listOf(navArgument("index") { this.type = NavType.StringType })
+        ) { backStackEntry ->
+            val pushViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<PushViewModel>(
+                factory = PushViewModelFactory(context, "push_tables")
+            )
+            val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: -1
+
+            if (index !in 0 until pushViewModel.tables.size) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Ejercicio no encontrado")
                 }
-                val vm: PushViewModel = viewModel(factory = PushViewModelFactory(context, fileName))
-
-                val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: -1
-                val size = vm.tables.size
-
-                if (index !in 0 until size) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Ejercicio no encontrado")
-                    }
-                    return@composable
-                }
-
-                PushExerciseDetailScreen(
-                    navController = navController,
-                    viewModel = vm,
-                    tableIndex = index
-                )
+                return@composable
             }
+
+            PushExerciseDetailScreen(navController, pushViewModel as PushViewModel, index)
+        }
+
+        // --- PULL ---
+        composable("pull") {
+            val pullViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<PullViewModel>(
+                factory = PullViewModelFactory(context, "pull_tables")
+            )
+            PushScreen(navController, pullViewModel as PushViewModel)
+        }
+
+        composable(
+            "pull/exercise/{index}",
+            arguments = listOf(navArgument("index") { this.type = NavType.StringType })
+        ) { backStackEntry ->
+            val pullViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<PullViewModel>(
+                factory = PullViewModelFactory(context, "pull_tables")
+            )
+            val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: -1
+
+            if (index !in 0 until pullViewModel.tables.size) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Ejercicio no encontrado")
+                }
+                return@composable
+            }
+
+            PushExerciseDetailScreen(navController, pullViewModel as PushViewModel, index)
+        }
+
+        // --- LEGS ---
+        composable("legs") {
+            val legsViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<LegsViewModel>(
+                factory = LegsViewModelFactory(context, "legs_tables")
+            )
+            PushScreen(navController, legsViewModel as PushViewModel)
+        }
+
+        composable(
+            "legs/exercise/{index}",
+            arguments = listOf(navArgument("index") { this.type = NavType.StringType })
+        ) { backStackEntry ->
+            val legsViewModel: com.haroun.gymi.persistence.ExerciseViewModel = viewModel<LegsViewModel>(
+                factory = LegsViewModelFactory(context, "legs_tables")
+            )
+            val index = backStackEntry.arguments?.getString("index")?.toIntOrNull() ?: -1
+
+            if (index !in 0 until legsViewModel.tables.size) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Ejercicio no encontrado")
+                }
+                return@composable
+            }
+
+            PushExerciseDetailScreen(navController, legsViewModel as PushViewModel, index)
         }
     }
 }
@@ -117,10 +163,11 @@ fun MainScreen(
     onTironClick: () -> Unit,
     onPiernaClick: () -> Unit
 ) {
-    Scaffold { inner ->
+    Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally

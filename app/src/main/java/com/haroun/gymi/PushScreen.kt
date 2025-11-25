@@ -8,8 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.haroun.gymi.persistence.ExerciseTable
-import com.haroun.gymi.persistence.PushViewModel
+import com.haroun.gymi.persistence.push.PushViewModel
 import com.haroun.gymi.ui.components.SmallCapsTopAppBar
 
 @Composable

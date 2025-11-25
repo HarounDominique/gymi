@@ -1,9 +1,13 @@
 // app/src/main/java/com/haroun/gymi/persistence/PushViewModelFactory.kt
-package com.haroun.gymi.persistence
+package com.haroun.gymi.persistence.push
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.haroun.gymi.persistence.ExerciseStorage
+import com.haroun.gymi.persistence.legsDataStore
+import com.haroun.gymi.persistence.pullDataStore
+import com.haroun.gymi.persistence.pushDataStore
 
 class PushViewModelFactory(
     private val context: Context,
