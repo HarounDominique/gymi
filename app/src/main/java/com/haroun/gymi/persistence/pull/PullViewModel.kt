@@ -34,6 +34,8 @@ class PullViewModel(
         }
     }
 
+    // Reemplaza el método updateCell en PushViewModel, PullViewModel y LegsViewModel
+
     override fun updateCell(tableIndex: Int, row: Int, col: Int, value: String) {
         if (tableIndex !in tables.indices) return
         val table = tables[tableIndex]
@@ -41,6 +43,12 @@ class PullViewModel(
         val rowList = table.data[row]
         if (col !in rowList.indices) return
         rowList[col] = value
+
+        // Actualizar fecha si el valor no está vacío
+        if (value.isNotBlank()) {
+            table.rowDates[row] = System.currentTimeMillis()
+        }
+
         persist()
     }
 

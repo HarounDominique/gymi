@@ -1,6 +1,6 @@
 package com.haroun.gymi.ui.push
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.haroun.gymi.persistence.ExerciseTable
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun ExerciseExcelTable(
@@ -20,6 +22,10 @@ fun ExerciseExcelTable(
     onCellChange: (tableIndex: Int, row: Int, col: Int, value: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDateDialog by remember { mutableStateOf(false) }
+    var selectedRowDate by remember { mutableStateOf<Long?>(null) }
+    var selectedRowIndex by remember { mutableStateOf(-1) }
+
     Column(modifier = modifier.fillMaxWidth()) {
         // Header: table title + add day button
         Row(
@@ -67,20 +73,35 @@ fun ExerciseExcelTable(
                 items(table.data.size) { r ->
                     val rowList = table.data[r]
                     Row(modifier = Modifier.padding(vertical = 4.dp)) {
-                        // Day label
+                        // Day label - clickeable para ver fecha
                         Text(
                             text = "Día ${r + 1}",
                             modifier = Modifier
                                 .width(80.dp)
-                                .padding(4.dp),
-                            style = MaterialTheme.typography.labelLarge
+                                .padding(4.dp)
+                                .clickable {
+                                    selectedRowIndex = r
+                                    selectedRowDate = table.rowDates[r]
+                                    showDateDialog = true
+                                },
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (table.rowDates.containsKey(r))
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface
                         )
 
                         // Cells
                         rowList.forEachIndexed { c, value ->
                             TableCell(
                                 value = value,
-                                onValueChange = { newValue -> onCellChange(tableIndex, r, c, newValue) },
+                                onValueChange = { newValue ->
+                                    onCellChange(tableIndex, r, c, newValue)
+                                    // Actualizar fecha cuando se modifica una celda
+                                    if (newValue.isNotBlank()) {
+                                        table.rowDates[r] = System.currentTimeMillis()
+                                    }
+                                },
                                 modifier = Modifier
                                     .width(140.dp)
                                     .padding(4.dp)
@@ -95,6 +116,29 @@ fun ExerciseExcelTable(
                 }
             }
         }
+    }
+
+    // Diálogo para mostrar la fecha
+    if (showDateDialog) {
+        AlertDialog(
+            onDismissRequest = { showDateDialog = false },
+            title = { Text("Día ${selectedRowIndex + 1}") },
+            text = {
+                Text(
+                    text = if (selectedRowDate != null) {
+                        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                        "Última modificación:\n${dateFormat.format(Date(selectedRowDate!!))}"
+                    } else {
+                        "Esta fila aún no ha sido modificada"
+                    }
+                )
+            },
+            confirmButton = {
+                Button(onClick = { showDateDialog = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
     }
 }
 
