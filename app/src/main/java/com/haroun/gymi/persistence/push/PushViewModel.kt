@@ -47,7 +47,7 @@ class PushViewModel(
     override fun addRowToTable(tableIndex: Int) {
         if (tableIndex !in tables.indices) return
         val table = tables[tableIndex]
-        val cols = table.columnCount
+        val cols = 3
         val newRow = mutableStateListOf<String>()
         repeat(cols) { newRow.add("") }
         table.data.add(newRow)
