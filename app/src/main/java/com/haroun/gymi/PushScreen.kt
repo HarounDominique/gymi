@@ -6,14 +6,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.haroun.gymi.persistence.ExerciseViewModel
 import com.haroun.gymi.persistence.push.PushViewModel
 import com.haroun.gymi.persistence.pull.PullViewModel
 import com.haroun.gymi.persistence.legs.LegsViewModel
-import com.haroun.gymi.ui.components.SmallCapsTopAppBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PushScreen(
     navController: NavController,
@@ -38,7 +40,20 @@ fun PushScreen(
 
     Scaffold(
         topBar = {
-            SmallCapsTopAppBar(title = screenTitle)
+            TopAppBar(
+                title = {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = screenTitle.uppercase(),
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                modifier = Modifier.height(48.dp)
+            )
         }
     ) { innerPadding ->
         Column(
@@ -105,10 +120,11 @@ fun PushScreen(
             confirmButton = {
                 Button(onClick = {
                     val safeTitle = title.ifBlank { "Ejercicio" }
+                    val truncatedTitle = safeTitle.take(50)
                     when (viewModel) {
-                        is PushViewModel -> viewModel.addTable(viewModel.createDefaultTable(safeTitle))
-                        is PullViewModel -> viewModel.addTable(viewModel.createDefaultTable(safeTitle))
-                        is LegsViewModel -> viewModel.addTable(viewModel.createDefaultTable(safeTitle))
+                        is PushViewModel -> viewModel.addTable(viewModel.createDefaultTable(truncatedTitle))
+                        is PullViewModel -> viewModel.addTable(viewModel.createDefaultTable(truncatedTitle))
+                        is LegsViewModel -> viewModel.addTable(viewModel.createDefaultTable(truncatedTitle))
                     }
                     title = ""
                     showDialog = false

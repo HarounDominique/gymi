@@ -2,7 +2,6 @@ package com.haroun.gymi.ui.push
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.haroun.gymi.persistence.ExerciseTable
 import java.text.SimpleDateFormat
@@ -68,7 +68,7 @@ fun ExerciseExcelTable(
                     }
                 },
                 modifier = Modifier.width(60.dp),
-                placeholder = { Text("R") },
+                placeholder = { Text("Reps") },
                 enabled = enabled,
                 singleLine = true
             )
@@ -87,7 +87,7 @@ fun ExerciseExcelTable(
                     }
                 },
                 modifier = Modifier.width(60.dp),
-                placeholder = { Text("KG") },
+                placeholder = { Text("Kg") },
                 enabled = enabled,
                 singleLine = true
             )
@@ -109,14 +109,17 @@ fun ExerciseExcelTable(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = table.title,
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f) // ocupa solo lo necesario
                 )
-                Spacer(modifier = Modifier.weight(1f))
+
                 Button(onClick = { onAddRow(tableIndex) }) {
                     Text("Añadir día")
                 }

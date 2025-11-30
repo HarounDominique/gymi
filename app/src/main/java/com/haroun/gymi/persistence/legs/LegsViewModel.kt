@@ -81,13 +81,6 @@ class LegsViewModel(
         persist()
     }
 
-    fun removeTable(index: Int) {
-        if (index in tables.indices) {
-            tables.removeAt(index)
-            persist()
-        }
-    }
-
     fun addCellToRow(tableIndex: Int, rowIndex: Int) {
         val table = tables.getOrNull(tableIndex) ?: return
         table.data[rowIndex].add("")
@@ -105,5 +98,4 @@ class LegsViewModel(
         return ExerciseTable(title = title, data = rows)
     }
 
-    fun getTableSize(): Int = tables.size
 }

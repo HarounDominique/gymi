@@ -10,8 +10,8 @@ import com.haroun.gymi.persistence.ExerciseViewModel
 import com.haroun.gymi.persistence.push.PushViewModel
 import com.haroun.gymi.persistence.pull.PullViewModel
 import com.haroun.gymi.persistence.legs.LegsViewModel
-import com.haroun.gymi.ui.components.SmallCapsTopAppBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PushExerciseDetailScreen(
     navController: NavController,
@@ -21,9 +21,6 @@ fun PushExerciseDetailScreen(
     val table = viewModel.tables.getOrNull(tableIndex)
 
     Scaffold(
-        topBar = {
-            SmallCapsTopAppBar(title = table?.title ?: "Ejercicio")
-        }
     ) { innerPadding ->
         if (table != null) {
             ExerciseExcelTable(
