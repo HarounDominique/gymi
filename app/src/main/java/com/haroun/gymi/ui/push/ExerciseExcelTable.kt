@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -41,17 +42,84 @@ fun ExerciseExcelTable(
         return hoursPassed >= 24
     }
 
+    @Composable
+    fun RepsWeightCell(
+        reps: String,
+        weight: String,
+        enabled: Boolean,
+        onChange: (String, String) -> Unit,
+        onUnlock: () -> Unit,
+        modifier: Modifier = Modifier
+    ) {
+        Row(
+            modifier = modifier
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = { if (!enabled) onUnlock() }
+                )
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            TextField(
+                value = reps,
+                onValueChange = { newValue ->
+                    if (newValue.all { it.isDigit() }) { // Solo números
+                        onChange(newValue, weight)
+                    }
+                },
+                modifier = Modifier.width(60.dp),
+                placeholder = { Text("R") },
+                enabled = enabled,
+                singleLine = true
+            )
+
+            Text(
+                text = "x",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
+
+            TextField(
+                value = weight,
+                onValueChange = { newValue ->
+                    if (newValue.all { it.isDigit() }) { // Solo números
+                        onChange(reps, newValue)
+                    }
+                },
+                modifier = Modifier.width(60.dp),
+                placeholder = { Text("KG") },
+                enabled = enabled,
+                singleLine = true
+            )
+        }
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         // Header: table title + add day button
-        Row(
+        // 🔹 Card que actúa como cabecera de sección
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
+            elevation = CardDefaults.cardElevation(4.dp)
         ) {
-            Text(text = table.title, style = MaterialTheme.typography.titleMedium)
-            Button(onClick = { onAddRow(tableIndex) }) {
-                Text("Añadir día")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = table.title,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Button(onClick = { onAddRow(tableIndex) }) {
+                    Text("+")
+                }
             }
         }
 
@@ -119,26 +187,24 @@ fun ExerciseExcelTable(
 
                         // Cells
                         rowList.forEachIndexed { c, value ->
-                            LockableTableCell(
-                                value = value,
-                                onValueChange = { newValue ->
+                            // Separar reps y peso desde el valor almacenado
+                            val parts = value.split("x")
+                            val reps = parts.getOrNull(0) ?: ""
+                            val weight = parts.getOrNull(1) ?: ""
+
+                            RepsWeightCell(
+                                reps = reps,
+                                weight = weight,
+                                enabled = !isLocked,
+                                onChange = { newReps, newWeight ->
+                                    val newValue = "${newReps}x${newWeight}"
                                     if (!isLocked) {
                                         onCellChange(tableIndex, r, c, newValue)
-                                        // Actualizar fecha cuando se modifica una celda
-                                        if (newValue.isNotBlank()) {
-                                            table.rowDates[r] = System.currentTimeMillis()
-                                        }
+                                        table.rowDates[r] = System.currentTimeMillis()
                                     }
                                 },
-                                isLocked = isLocked,
-                                onUnlock = {
-                                    if (isRowLocked(r)) {
-                                        unlockedRows = unlockedRows + r
-                                    }
-                                },
-                                modifier = Modifier
-                                    .width(140.dp)
-                                    .padding(4.dp)
+                                onUnlock = { if (isLocked) unlockedRows = unlockedRows + r },
+                                modifier = Modifier.width(140.dp)
                             )
                         }
 
