@@ -1,10 +1,10 @@
-// app/src/main/java/com/haroun/gymi/ui/push/PushScreen.kt
 package com.haroun.gymi.ui.push
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -22,7 +22,6 @@ fun PushScreen(
     var showDialog by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
 
-    // Determinar la ruta base según el tipo de ViewModel
     val routeBase = when (viewModel) {
         is PushViewModel -> "push"
         is PullViewModel -> "pull"
@@ -40,28 +39,47 @@ fun PushScreen(
     Scaffold(
         topBar = {
             SmallCapsTopAppBar(title = screenTitle)
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showDialog = true }) {
-                Text("+")
-            }
         }
     ) { innerPadding ->
-        Column(modifier = Modifier
-            .padding(innerPadding)
-            .fillMaxSize()
-            .padding(16.dp)
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            Text("Ejercicios", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
+
+            // 🔹 Card que actúa como cabecera de sección
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Ejercicios",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Button(onClick = { showDialog = true }) {
+                        Text("+")
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             LazyColumn {
                 items(viewModel.tables.size) { index ->
                     val t = viewModel.tables[index]
                     Button(
-                        onClick = {
-                            navController.navigate("$routeBase/exercise/$index")
-                        },
+                        onClick = { navController.navigate("$routeBase/exercise/$index") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
@@ -86,26 +104,11 @@ fun PushScreen(
             },
             confirmButton = {
                 Button(onClick = {
-                    // Cast seguro según el tipo de ViewModel
+                    val safeTitle = title.ifBlank { "Ejercicio" }
                     when (viewModel) {
-                        is PushViewModel -> {
-                            val newTable = viewModel.createDefaultTable(
-                                title = title.ifBlank { "Ejercicio" }
-                            )
-                            viewModel.addTable(newTable)
-                        }
-                        is PullViewModel -> {
-                            val newTable = viewModel.createDefaultTable(
-                                title = title.ifBlank { "Ejercicio" }
-                            )
-                            viewModel.addTable(newTable)
-                        }
-                        is LegsViewModel -> {
-                            val newTable = viewModel.createDefaultTable(
-                                title = title.ifBlank { "Ejercicio" }
-                            )
-                            viewModel.addTable(newTable)
-                        }
+                        is PushViewModel -> viewModel.addTable(viewModel.createDefaultTable(safeTitle))
+                        is PullViewModel -> viewModel.addTable(viewModel.createDefaultTable(safeTitle))
+                        is LegsViewModel -> viewModel.addTable(viewModel.createDefaultTable(safeTitle))
                     }
                     title = ""
                     showDialog = false
