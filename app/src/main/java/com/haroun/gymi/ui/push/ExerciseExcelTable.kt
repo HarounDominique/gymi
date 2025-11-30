@@ -51,46 +51,75 @@ fun ExerciseExcelTable(
         onUnlock: () -> Unit,
         modifier: Modifier = Modifier
     ) {
-        Row(
+        Card(
             modifier = modifier
+                .width(180.dp)
+                .padding(4.dp)
                 .combinedClickable(
                     onClick = {},
                     onLongClick = { if (!enabled) onUnlock() }
-                )
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ),
+            colors = CardDefaults.cardColors(
+                containerColor = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
+            ),
+            elevation = CardDefaults.cardElevation(2.dp)
         ) {
-            TextField(
-                value = reps,
-                onValueChange = { newValue ->
-                    if (newValue.all { it.isDigit() }) { // Solo números
-                        onChange(newValue, weight)
-                    }
-                },
-                modifier = Modifier.width(60.dp),
-                placeholder = { Text("Reps") },
-                enabled = enabled,
-                singleLine = true
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-            Text(
-                text = "x",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
+                // 📌 Celda REPS
+                OutlinedTextField(
+                    value = reps,
+                    onValueChange = { if (it.all { c -> c.isDigit() }) onChange(it, weight) },
+                    placeholder = {
+                        Text(
+                            "R",
+                            maxLines = 1,
+                            style = MaterialTheme.typography.labelSmall, // 🔹 Más pequeño
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 4.dp),
+                    singleLine = true,
+                    enabled = enabled,
+                    maxLines = 1
+                )
 
-            TextField(
-                value = weight,
-                onValueChange = { newValue ->
-                    if (newValue.all { it.isDigit() }) { // Solo números
-                        onChange(reps, newValue)
-                    }
-                },
-                modifier = Modifier.width(60.dp),
-                placeholder = { Text("Kg") },
-                enabled = enabled,
-                singleLine = true
-            )
+                // ❌ Separador
+                Text(
+                    "x",
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    style = MaterialTheme.typography.bodySmall // 🔹 ligeramente más pequeño
+                )
+
+                // 📌 Celda KG
+                OutlinedTextField(
+                    value = weight,
+                    onValueChange = { if (it.all { c -> c.isDigit() }) onChange(reps, it) },
+                    placeholder = {
+                        Text(
+                            "Kg",
+                            maxLines = 1,
+                            style = MaterialTheme.typography.labelSmall, // 🔹 Más pequeño
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 4.dp),
+                    singleLine = true,
+                    enabled = enabled,
+                    maxLines = 1
+                )
+            }
         }
     }
 
