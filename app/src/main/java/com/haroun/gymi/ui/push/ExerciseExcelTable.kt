@@ -118,7 +118,7 @@ fun ExerciseExcelTable(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Button(onClick = { onAddRow(tableIndex) }) {
-                    Text("+")
+                    Text("Añadir día")
                 }
             }
         }
