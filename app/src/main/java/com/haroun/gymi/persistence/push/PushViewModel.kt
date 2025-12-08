@@ -28,6 +28,13 @@ class PushViewModel(
             .launchIn(viewModelScope)
     }
 
+    override fun deleteTable(index: Int) {
+        if (index in tables.indices) {
+            tables.removeAt(index)
+            persist()
+        }
+    }
+
     private fun persist() {
         viewModelScope.launch {
             storage.saveTables(tables.map { it.toDto() })
@@ -72,13 +79,6 @@ class PushViewModel(
     fun addTable(newTable: ExerciseTable) {
         tables.add(newTable)
         persist()
-    }
-
-    fun removeTable(index: Int) {
-        if (index in tables.indices) {
-            tables.removeAt(index)
-            persist()
-        }
     }
 
     fun addCellToRow(tableIndex: Int, rowIndex: Int) {

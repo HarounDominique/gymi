@@ -1,5 +1,6 @@
 package com.haroun.gymi.ui.push
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
@@ -24,6 +25,14 @@ fun PushScreen(
     var showDialog by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
 
+    var actionIndex by remember { mutableStateOf<Int?>(null) } // índice del ejercicio al mantener pulsado
+    var renameDialog by remember { mutableStateOf(false) }
+    var renameTitle by remember { mutableStateOf("") }
+    var renameIndex by remember { mutableStateOf<Int?>(null) } // índice del ejercicio a renombrar
+
+    var deleteIndex by remember { mutableStateOf<Int?>(null) } // índice del ejercicio a borrar
+    var confirmDeleteDialog by remember { mutableStateOf(false) } // mostrar diálogo confirmación
+
     val routeBase = when (viewModel) {
         is PushViewModel -> "push"
         is PullViewModel -> "pull"
@@ -47,8 +56,7 @@ fun PushScreen(
                             text = screenTitle.uppercase(),
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.Center,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.fillMaxWidth()
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 },
@@ -62,13 +70,10 @@ fun PushScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-
-            // 🔹 Card que actúa como cabecera de sección
+            // Cabecera
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
                 Row(
@@ -77,46 +82,51 @@ fun PushScreen(
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "Ejercicios",
-                        style = MaterialTheme.typography.titleLarge
-                    )
+                    Text("Ejercicios", style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.weight(1f))
-                    Button(onClick = { showDialog = true }) {
-                        Text("+")
-                    }
+                    Button(onClick = { showDialog = true }) { Text("+") }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Lista de ejercicios
             LazyColumn {
                 items(viewModel.tables.size) { index ->
                     val t = viewModel.tables[index]
-                    Button(
-                        onClick = { navController.navigate("$routeBase/exercise/$index") },
+
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
+                            .combinedClickable(
+                                onClick = { navController.navigate("$routeBase/exercise/$index") },
+                                onLongClick = { actionIndex = index }
+                            ),
+                        elevation = CardDefaults.cardElevation(2.dp)
                     ) {
-                        Text(text = t.title.ifBlank { "Ejercicio ${index + 1}" })
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = t.title.ifBlank { "Ejercicio ${index + 1}" },
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
+    // Diálogo nuevo ejercicio
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text("Nuevo ejercicio") },
-            text = {
-                TextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Nombre") }
-                )
-            },
+            text = { TextField(value = title, onValueChange = { title = it }, label = { Text("Nombre") }) },
             confirmButton = {
                 Button(onClick = {
                     val safeTitle = title.ifBlank { "Ejercicio" }
@@ -128,17 +138,70 @@ fun PushScreen(
                     }
                     title = ""
                     showDialog = false
-                }) {
-                    Text("Guardar")
-                }
+                }) { Text("Guardar") }
+            },
+            dismissButton = { Button(onClick = { title = ""; showDialog = false }) { Text("Cancelar") } }
+        )
+    }
+
+    // Diálogo opciones al mantener pulsado
+    if (actionIndex != null) {
+        AlertDialog(
+            onDismissRequest = { actionIndex = null },
+            title = { Text("Opciones del ejercicio") },
+            text = { Text("Elige una acción para este ejercicio") },
+            confirmButton = {
+                Button(onClick = {
+                    renameDialog = true
+                    renameIndex = actionIndex
+                    renameTitle = viewModel.tables[actionIndex!!].title
+                    actionIndex = null
+                }) { Text("Renombrar") }
             },
             dismissButton = {
                 Button(onClick = {
-                    title = ""
-                    showDialog = false
-                }) {
-                    Text("Cancelar")
-                }
+                    deleteIndex = actionIndex
+                    confirmDeleteDialog = true
+                    actionIndex = null
+                }) { Text("Eliminar") }
+            }
+        )
+    }
+
+    // Diálogo renombrar ejercicio
+    if (renameDialog && renameIndex != null) {
+        AlertDialog(
+            onDismissRequest = { renameDialog = false },
+            title = { Text("Renombrar ejercicio") },
+            text = { TextField(value = renameTitle, onValueChange = { renameTitle = it }) },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.tables[renameIndex!!].title = renameTitle
+                    renameDialog = false
+                    renameIndex = null
+                }) { Text("Guardar") }
+            },
+            dismissButton = {
+                Button(onClick = { renameDialog = false; renameIndex = null }) { Text("Cancelar") }
+            }
+        )
+    }
+
+    // Diálogo confirmar borrado
+    if (confirmDeleteDialog && deleteIndex != null) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteDialog = false; deleteIndex = null },
+            title = { Text("Eliminar ejercicio") },
+            text = { Text("¿Seguro que quieres eliminar este ejercicio? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.deleteTable(deleteIndex!!)
+                    confirmDeleteDialog = false
+                    deleteIndex = null
+                }) { Text("Eliminar") }
+            },
+            dismissButton = {
+                Button(onClick = { confirmDeleteDialog = false; deleteIndex = null }) { Text("Cancelar") }
             }
         )
     }

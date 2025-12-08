@@ -20,6 +20,13 @@ class LegsViewModel(
     // Lista observable de tablas
     override val tables = mutableStateListOf<ExerciseTable>()
 
+    override fun deleteTable(index: Int) {
+        if (index in tables.indices) {
+            tables.removeAt(index)
+            persist()
+        }
+    }
+
     init {
         // Cargar tablas desde almacenamiento al iniciar
         storage.getTables()

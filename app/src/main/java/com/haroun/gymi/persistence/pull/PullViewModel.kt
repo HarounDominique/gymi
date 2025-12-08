@@ -19,6 +19,13 @@ class PullViewModel(
 
     override val tables = mutableStateListOf<ExerciseTable>()
 
+    override fun deleteTable(index: Int) {
+        if (index in tables.indices) {
+            tables.removeAt(index)
+            persist()
+        }
+    }
+
     init {
         storage.getTables()
             .onEach { dtoList ->
@@ -72,13 +79,6 @@ class PullViewModel(
     fun addTable(newTable: ExerciseTable) {
         tables.add(newTable)
         persist()
-    }
-
-    fun removeTable(index: Int) {
-        if (index in tables.indices) {
-            tables.removeAt(index)
-            persist()
-        }
     }
 
     fun addCellToRow(tableIndex: Int, rowIndex: Int) {

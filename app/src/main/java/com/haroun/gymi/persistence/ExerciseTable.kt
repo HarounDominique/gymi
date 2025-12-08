@@ -13,7 +13,7 @@ data class ExerciseTableDto(
 )
 
 data class ExerciseTable(
-    val title: String,
+    var title: String,
     val data: SnapshotStateList<SnapshotStateList<String>>,
     val rowDates: MutableMap<Int, Long> = mutableMapOf() // Timestamp por fila
 ) {
