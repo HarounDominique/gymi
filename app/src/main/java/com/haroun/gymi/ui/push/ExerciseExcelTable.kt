@@ -53,7 +53,7 @@ fun ExerciseExcelTable(
     ) {
         Card(
             modifier = modifier
-                .width(180.dp)
+                .width(100.dp)
                 .padding(4.dp)
                 .combinedClickable(
                     onClick = {},
@@ -64,60 +64,63 @@ fun ExerciseExcelTable(
             ),
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                // 📌 Celda REPS
-                OutlinedTextField(
-                    value = reps,
-                    onValueChange = { if (it.all { c -> c.isDigit() }) onChange(it, weight) },
-                    placeholder = {
-                        Text(
-                            "R",
-                            maxLines = 1,
-                            style = MaterialTheme.typography.labelSmall, // 🔹 Más pequeño
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 4.dp),
-                    singleLine = true,
-                    enabled = enabled,
-                    maxLines = 1
-                )
-
-                // ❌ Separador
-                Text(
-                    "x",
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                    style = MaterialTheme.typography.bodySmall // 🔹 ligeramente más pequeño
-                )
-
-                // 📌 Celda KG
+                // 📌 Subcelda KG
                 OutlinedTextField(
                     value = weight,
-                    onValueChange = { if (it.all { c -> c.isDigit() }) onChange(reps, it) },
-                    placeholder = {
-                        Text(
-                            "Kg",
-                            maxLines = 1,
-                            style = MaterialTheme.typography.labelSmall, // 🔹 Más pequeño
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    onValueChange = { newValue ->
+                        if (newValue.matches(Regex("^\\d*(\\.\\d*)?$"))) {
+                            onChange(reps, newValue)
+                        }
                     },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp),
+                    placeholder = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Kg",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
                     singleLine = true,
                     enabled = enabled,
-                    maxLines = 1
+                    textStyle = LocalTextStyle.current.copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 📌 Subcelda REPS
+                OutlinedTextField(
+                    value = reps,
+                    onValueChange = { newValue ->
+                        if (newValue.matches(Regex("^\\d*(\\.\\d*)?$"))) {
+                            onChange(newValue, weight)
+                        }
+                    },
+                    placeholder = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Reps",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    singleLine = true,
+                    enabled = enabled,
+                    textStyle = LocalTextStyle.current.copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
