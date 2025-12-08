@@ -1,22 +1,36 @@
 package com.haroun.gymi.ui.push
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.haroun.gymi.persistence.ExerciseTable
 import java.text.SimpleDateFormat
 import java.util.*
+
+/**
+ * Versión optimizada de ExerciseExcelTable:
+ * - Usa BasicTextField para menos sobrecarga.
+ * - Celdas verticales (KG arriba, Reps abajo).
+ * - Cards por fila (día) con alternancia de sombreado.
+ * - Placeholders centrados.
+ * - Validación para permitir enteros y decimales.
+ */
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -28,13 +42,13 @@ fun ExerciseExcelTable(
     onCellChange: (tableIndex: Int, row: Int, col: Int, value: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Estado local para diálogo/fecha/desbloqueos
     var showDateDialog by remember { mutableStateOf(false) }
     var selectedRowDate by remember { mutableStateOf<Long?>(null) }
     var selectedRowIndex by remember { mutableStateOf(-1) }
-
-    // Estado para controlar qué filas están temporalmente desbloqueadas
     var unlockedRows by remember { mutableStateOf(setOf<Int>()) }
 
+    // helper: locked if >24h since timestamp
     fun isRowLocked(rowIndex: Int): Boolean {
         val timestamp = table.rowDates[rowIndex] ?: return false
         val now = System.currentTimeMillis()
@@ -42,9 +56,65 @@ fun ExerciseExcelTable(
         return hoursPassed >= 24
     }
 
-    // =======================================
-    //     C E L D A    V E R T I C A L
-    // =======================================
+    // Reusable small composable: field with centered placeholder + center text (BasicTextField)
+    @Composable
+    fun CenteredBasicField(
+        value: String,
+        placeholderText: String,
+        enabled: Boolean,
+        onValueChange: (String) -> Unit,
+        modifier: Modifier = Modifier
+    ) {
+        // keep TextFieldValue local to avoid heavy recomposition from parent strings
+        var internal by remember(value) { mutableStateOf(TextFieldValue(text = value)) }
+
+        // Sync external -> internal when value changes from outside
+        LaunchedEffect(value) {
+            if (value != internal.text) internal = TextFieldValue(text = value)
+        }
+
+        Box(
+            modifier = modifier
+                .height(36.dp)
+                .fillMaxWidth()
+                .padding(2.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (internal.text.isEmpty()) {
+                Text(
+                    text = placeholderText,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            BasicTextField(
+                value = internal,
+                onValueChange = { tfv ->
+                    // keep only valid patterns - integers or decimals
+                    val newText = tfv.text
+                    if (newText.matches(Regex("^\\d*(\\.\\d*)?$"))) {
+                        internal = tfv
+                        onValueChange(newText)
+                    } else if (newText.isEmpty()) {
+                        internal = tfv
+                        onValueChange("")
+                    } // else ignore invalid char
+                },
+                enabled = enabled,
+                textStyle = TextStyle(
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 14.sp,
+                    lineHeight = 16.sp
+                ),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+        }
+    }
+
+    // Cell composed vertical: KG (top) + Reps (bottom)
     @Composable
     fun RepsWeightCell(
         reps: String,
@@ -54,72 +124,45 @@ fun ExerciseExcelTable(
         onUnlock: () -> Unit,
         modifier: Modifier = Modifier
     ) {
+        // Card that groups both subfields
         Card(
             modifier = modifier
-                .width(100.dp)
-                .padding(4.dp)
+                .width(120.dp) // tamaño razonable para que no se corte en horizontal
+                .padding(6.dp)
                 .combinedClickable(
                     onClick = {},
                     onLongClick = { if (!enabled) onUnlock() }
                 ),
             colors = CardDefaults.cardColors(
-                containerColor =
-                    if (enabled) MaterialTheme.colorScheme.surface
-                    else MaterialTheme.colorScheme.surfaceVariant
+                containerColor = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
             ),
-            elevation = CardDefaults.cardElevation(2.dp)
+            elevation = CardDefaults.cardElevation(1.5.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(6.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-                // KG arriba
-                OutlinedTextField(
+                // KG - arriba
+                CenteredBasicField(
                     value = weight,
-                    onValueChange = { newValue ->
-                        if (newValue.matches(Regex("^\\d*(\\.\\d*)?$"))) {
-                            onChange(reps, newValue)
-                        }
-                    },
-                    placeholder = {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text(
-                                "Kg",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                    singleLine = true,
+                    placeholderText = "Kg",
                     enabled = enabled,
+                    onValueChange = { newWeight -> onChange(reps, newWeight) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Reps abajo
-                OutlinedTextField(
+                // Divider visual pequeña
+                Divider(modifier = Modifier.fillMaxWidth().height(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+
+                // REPS - abajo
+                CenteredBasicField(
                     value = reps,
-                    onValueChange = { newValue ->
-                        if (newValue.matches(Regex("^\\d*(\\.\\d*)?$"))) {
-                            onChange(newValue, weight)
-                        }
-                    },
-                    placeholder = {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Text(
-                                "Reps",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                    singleLine = true,
+                    placeholderText = "Reps",
                     enabled = enabled,
+                    onValueChange = { newReps -> onChange(newReps, weight) },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -127,32 +170,28 @@ fun ExerciseExcelTable(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-
-        // ============================================================
-        //   CABECERA DE LA TABLA (Título + Botón Añadir Día)
-        // ============================================================
+        // Header: compact card con título y botón "Añadir día" (menos alto para dar más foco a la tabla)
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(4.dp)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            elevation = CardDefaults.cardElevation(2.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = table.title,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Button(onClick = { onAddRow(tableIndex) }) {
                     Text("Añadir día")
@@ -160,140 +199,119 @@ fun ExerciseExcelTable(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-
-        // ============================================================
-        //                TABLA DE EJERCICIOS (VISTA VERTICAL)
-        // ============================================================
-
+        // Table header (sets) + body. Horizontal scroll for sets.
         val hState = rememberScrollState()
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(hState)
-        ) {
-
-            // -------------------------
-            //  CABECERA DE LOS SETS
-            // -------------------------
-            Row(modifier = Modifier.padding(horizontal = 8.dp)) {
-                Text("", modifier = Modifier.width(80.dp)) // hueco esquina superior izq
-
+        Column(modifier = Modifier.fillMaxWidth().horizontalScroll(hState)) {
+            // Header row: top-left empty + set labels
+            Row(modifier = Modifier.padding(horizontal = 12.dp)) {
+                Text(
+                    text = "", // corner
+                    modifier = Modifier.width(92.dp)
+                )
                 table.data.firstOrNull()?.forEachIndexed { c, _ ->
                     Text(
                         text = "Set ${c + 1}",
                         modifier = Modifier
-                            .width(100.dp)
-                            .padding(4.dp),
-                        style = MaterialTheme.typography.labelLarge
+                            .width(128.dp)
+                            .padding(6.dp),
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // -------------------------
-            //         FILAS (DÍAS)
-            // -------------------------
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(table.data.size) { r ->
-                    val rowList = table.data[r]
-                    val isLocked = isRowLocked(r) && !unlockedRows.contains(r)
-
-                    // Alternancia de estilo
-                    val backgroundColor =
-                        if (r % 2 == 0) MaterialTheme.colorScheme.surfaceVariant
-                        else MaterialTheme.colorScheme.surface
-
-                    val elevation =
-                        if (r % 2 == 0) 4.dp else 0.dp
+            // Rows as cards (LazyColumn with keys)
+            LazyColumn {
+                itemsIndexed(table.data, key = { idx, _ -> "row-$idx" }) { r, rowList ->
+                    // Alternate shaded background for rows for clarity
+                    val rowBg = if (r % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+                    val rowCardElevation = if (r % 2 == 0) 0.dp else 2.dp
 
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp)
-                            .combinedClickable(
-                                onClick = {
-                                    selectedRowIndex = r
-                                    selectedRowDate = table.rowDates[r]
-                                    showDateDialog = true
-                                },
-                                onLongClick = {
-                                    if (isLocked) unlockedRows = unlockedRows + r
-                                }
-                            ),
-                        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-                        elevation = CardDefaults.cardElevation(elevation)
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                            .shadow(rowCardElevation),
+                        colors = CardDefaults.cardColors(containerColor = rowBg),
+                        elevation = CardDefaults.cardElevation(rowCardElevation)
                     ) {
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-
-                            // Día
+                            // Day label
                             Text(
-                                text = "Día ${r + 1}" +
-                                        (if (isRowLocked(r)) " 🔒" else "") +
-                                        (if (unlockedRows.contains(r)) " 🔓" else ""),
-                                style = MaterialTheme.typography.titleSmall,
+                                text = "Día ${r + 1}${if (isRowLocked(r)) " 🔒" else ""}${if (unlockedRows.contains(r)) " 🔓" else ""}",
+                                modifier = Modifier
+                                    .width(92.dp)
+                                    .combinedClickable(
+                                        onClick = {
+                                            selectedRowIndex = r
+                                            selectedRowDate = table.rowDates[r]
+                                            showDateDialog = true
+                                        },
+                                        onLongClick = {
+                                            if (isRowLocked(r)) unlockedRows = unlockedRows + r
+                                        }
+                                    )
+                                    .padding(4.dp),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = when {
                                     unlockedRows.contains(r) -> MaterialTheme.colorScheme.tertiary
-                                    isLocked -> Color.Gray
+                                    isRowLocked(r) -> Color.Gray
                                     table.rowDates.containsKey(r) -> MaterialTheme.colorScheme.primary
                                     else -> MaterialTheme.colorScheme.onSurface
                                 }
                             )
 
-                            // Set verticales
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                rowList.forEachIndexed { c, value ->
-                                    val parts = value.split("x")
-                                    val reps = parts.getOrNull(0) ?: ""
-                                    val weight = parts.getOrNull(1) ?: ""
+                            Spacer(modifier = Modifier.width(6.dp))
 
-                                    RepsWeightCell(
-                                        reps = reps,
-                                        weight = weight,
-                                        enabled = !isLocked,
-                                        onChange = { newReps, newW ->
-                                            if (!isLocked) {
-                                                val newValue = "${newReps}x${newW}"
-                                                onCellChange(tableIndex, r, c, newValue)
-                                                table.rowDates[r] = System.currentTimeMillis()
-                                            }
-                                        },
-                                        onUnlock = {
-                                            if (isLocked) unlockedRows = unlockedRows + r
-                                        }
-                                    )
-                                }
+                            // Cells: iterate sets (columns)
+                            rowList.forEachIndexed { c, value ->
+                                // split stored value "repsxweight" into parts safely
+                                val parts = value.split("x", limit = 2)
+                                val reps = parts.getOrNull(0) ?: ""
+                                val weight = parts.getOrNull(1) ?: ""
 
-                                IconButton(
-                                    onClick = { if (!isLocked) onAddCellInRow(r) },
-                                    enabled = !isLocked
-                                ) { Text("+") }
+                                RepsWeightCell(
+                                    reps = reps,
+                                    weight = weight,
+                                    enabled = !isRowLocked(r) || unlockedRows.contains(r),
+                                    onChange = { newReps, newWeight ->
+                                        val newVal = "${newReps}x${newWeight}"
+                                        onCellChange(tableIndex, r, c, newVal)
+                                        // Update row date
+                                        table.rowDates[r] = System.currentTimeMillis()
+                                    },
+                                    onUnlock = { unlockedRows = unlockedRows + r },
+                                    modifier = Modifier.width(128.dp)
+                                )
+                            }
+
+                            // Add cell button (for the row)
+                            Spacer(modifier = Modifier.weight(1f))
+                            IconButton(
+                                onClick = { if (!isRowLocked(r) || unlockedRows.contains(r)) onAddCellInRow(r) },
+                                enabled = !(isRowLocked(r) && !unlockedRows.contains(r))
+                            ) {
+                                Text("+")
                             }
                         }
                     }
                 }
-            }
-        }
-    }
+            } // LazyColumn
+        } // Column horizontalScroll
+    } // Column root
 
-
-    // =======================================
-    //      D I Á L O G O   D E   F E C H A
-    // =======================================
-
+    // Fecha / diálogo de fila (igual que antes)
     if (showDateDialog) {
         val isLockedOriginal = isRowLocked(selectedRowIndex)
-        val isUnlocked = unlockedRows.contains(selectedRowIndex)
+        val isCurrentlyUnlocked = unlockedRows.contains(selectedRowIndex)
 
         AlertDialog(
             onDismissRequest = { showDateDialog = false },
@@ -301,23 +319,24 @@ fun ExerciseExcelTable(
             text = {
                 Column {
                     Text(
-                        text = selectedRowDate?.let {
+                        text = if (selectedRowDate != null) {
                             val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                            "Última modificación:\n${dateFormat.format(Date(it))}"
-                        } ?: "Esta fila aún no ha sido modificada"
+                            "Última modificación:\n${dateFormat.format(Date(selectedRowDate!!))}"
+                        } else {
+                            "Esta fila aún no ha sido modificada"
+                        }
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (isLockedOriginal && !isUnlocked) {
+                    if (isLockedOriginal && !isCurrentlyUnlocked) {
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "🔒 Esta fila está bloqueada (más de 24h). Mantén pulsado para desbloquear.",
+                            text = "🔒 Esta fila está bloqueada (más de 24 horas)\n\nMantén pulsado el nombre del día o cualquier celda para desbloquear temporalmente.",
                             color = Color.Gray,
                             style = MaterialTheme.typography.bodySmall
                         )
-                    } else if (isUnlocked) {
+                    } else if (isCurrentlyUnlocked) {
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "🔓 Fila desbloqueada temporalmente.",
+                            text = "🔓 Fila desbloqueada temporalmente para edición",
                             color = MaterialTheme.colorScheme.tertiary,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -329,7 +348,7 @@ fun ExerciseExcelTable(
                     Text("Cerrar")
                 }
             },
-            dismissButton = if (isUnlocked) {
+            dismissButton = if (isCurrentlyUnlocked) {
                 {
                     TextButton(onClick = {
                         unlockedRows = unlockedRows - selectedRowIndex
