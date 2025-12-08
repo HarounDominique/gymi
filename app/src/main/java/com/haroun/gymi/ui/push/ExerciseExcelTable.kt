@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.haroun.gymi.persistence.ExerciseTable
@@ -34,7 +35,6 @@ fun ExerciseExcelTable(
     // Estado para controlar qué filas están temporalmente desbloqueadas
     var unlockedRows by remember { mutableStateOf(setOf<Int>()) }
 
-    // Función helper para verificar si una fila está bloqueada (más de 24h desde modificación)
     fun isRowLocked(rowIndex: Int): Boolean {
         val timestamp = table.rowDates[rowIndex] ?: return false
         val now = System.currentTimeMillis()
@@ -42,6 +42,9 @@ fun ExerciseExcelTable(
         return hoursPassed >= 24
     }
 
+    // =======================================
+    //     C E L D A    V E R T I C A L
+    // =======================================
     @Composable
     fun RepsWeightCell(
         reps: String,
@@ -60,7 +63,9 @@ fun ExerciseExcelTable(
                     onLongClick = { if (!enabled) onUnlock() }
                 ),
             colors = CardDefaults.cardColors(
-                containerColor = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
+                containerColor =
+                    if (enabled) MaterialTheme.colorScheme.surface
+                    else MaterialTheme.colorScheme.surfaceVariant
             ),
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
@@ -71,7 +76,8 @@ fun ExerciseExcelTable(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 📌 Subcelda KG
+
+                // KG arriba
                 OutlinedTextField(
                     value = weight,
                     onValueChange = { newValue ->
@@ -80,10 +86,7 @@ fun ExerciseExcelTable(
                         }
                     },
                     placeholder = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                             Text(
                                 "Kg",
                                 style = MaterialTheme.typography.labelSmall,
@@ -91,13 +94,13 @@ fun ExerciseExcelTable(
                             )
                         }
                     },
+                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
                     singleLine = true,
                     enabled = enabled,
-                    textStyle = LocalTextStyle.current.copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // 📌 Subcelda REPS
+                // Reps abajo
                 OutlinedTextField(
                     value = reps,
                     onValueChange = { newValue ->
@@ -106,10 +109,7 @@ fun ExerciseExcelTable(
                         }
                     },
                     placeholder = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                             Text(
                                 "Reps",
                                 style = MaterialTheme.typography.labelSmall,
@@ -117,9 +117,9 @@ fun ExerciseExcelTable(
                             )
                         }
                     },
+                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
                     singleLine = true,
                     enabled = enabled,
-                    textStyle = LocalTextStyle.current.copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -127,8 +127,10 @@ fun ExerciseExcelTable(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Header: table title + add day button
-        // 🔹 Card que actúa como cabecera de sección
+
+        // ============================================================
+        //   CABECERA DE LA TABLA (Título + Botón Añadir Día)
+        // ============================================================
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,7 +151,7 @@ fun ExerciseExcelTable(
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f) // ocupa solo lo necesario
+                    modifier = Modifier.weight(1f)
                 )
 
                 Button(onClick = { onAddRow(tableIndex) }) {
@@ -160,95 +162,123 @@ fun ExerciseExcelTable(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Table body with horizontal scroll for sets
+
+        // ============================================================
+        //                TABLA DE EJERCICIOS (VISTA VERTICAL)
+        // ============================================================
+
         val hState = rememberScrollState()
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(hState)
         ) {
-            // Header row: empty cell for top-left corner + Set labels
+
+            // -------------------------
+            //  CABECERA DE LOS SETS
+            // -------------------------
             Row(modifier = Modifier.padding(horizontal = 8.dp)) {
-                Text(
-                    text = "", // top-left corner empty
-                    modifier = Modifier.width(80.dp)
-                )
+                Text("", modifier = Modifier.width(80.dp)) // hueco esquina superior izq
+
                 table.data.firstOrNull()?.forEachIndexed { c, _ ->
                     Text(
                         text = "Set ${c + 1}",
                         modifier = Modifier
-                            .width(140.dp)
+                            .width(100.dp)
                             .padding(4.dp),
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // Rows (days)
-            LazyColumn {
+            // -------------------------
+            //         FILAS (DÍAS)
+            // -------------------------
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 items(table.data.size) { r ->
                     val rowList = table.data[r]
                     val isLocked = isRowLocked(r) && !unlockedRows.contains(r)
 
-                    Row(modifier = Modifier.padding(vertical = 4.dp)) {
-                        // Day label - clickeable para ver fecha, long press para desbloquear
-                        Text(
-                            text = "Día ${r + 1}${if (isRowLocked(r)) " 🔒" else ""}${if (unlockedRows.contains(r)) " 🔓" else ""}",
-                            modifier = Modifier
-                                .width(80.dp)
-                                .padding(4.dp)
-                                .combinedClickable(
-                                    onClick = {
-                                        selectedRowIndex = r
-                                        selectedRowDate = table.rowDates[r]
-                                        showDateDialog = true
-                                    },
-                                    onLongClick = {
-                                        if (isRowLocked(r)) {
-                                            unlockedRows = unlockedRows + r
-                                        }
-                                    }
-                                ),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = when {
-                                unlockedRows.contains(r) -> MaterialTheme.colorScheme.tertiary
-                                isLocked -> Color.Gray
-                                table.rowDates.containsKey(r) -> MaterialTheme.colorScheme.primary
-                                else -> MaterialTheme.colorScheme.onSurface
-                            }
-                        )
+                    // Alternancia de estilo
+                    val backgroundColor =
+                        if (r % 2 == 0) MaterialTheme.colorScheme.surfaceVariant
+                        else MaterialTheme.colorScheme.surface
 
-                        // Cells
-                        rowList.forEachIndexed { c, value ->
-                            // Separar reps y peso desde el valor almacenado
-                            val parts = value.split("x")
-                            val reps = parts.getOrNull(0) ?: ""
-                            val weight = parts.getOrNull(1) ?: ""
+                    val elevation =
+                        if (r % 2 == 0) 4.dp else 0.dp
 
-                            RepsWeightCell(
-                                reps = reps,
-                                weight = weight,
-                                enabled = !isLocked,
-                                onChange = { newReps, newWeight ->
-                                    val newValue = "${newReps}x${newWeight}"
-                                    if (!isLocked) {
-                                        onCellChange(tableIndex, r, c, newValue)
-                                        table.rowDates[r] = System.currentTimeMillis()
-                                    }
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .combinedClickable(
+                                onClick = {
+                                    selectedRowIndex = r
+                                    selectedRowDate = table.rowDates[r]
+                                    showDateDialog = true
                                 },
-                                onUnlock = { if (isLocked) unlockedRows = unlockedRows + r },
-                                modifier = Modifier.width(140.dp)
-                            )
-                        }
-
-                        // Button to add a new cell to this row (deshabilitado si está bloqueada)
-                        IconButton(
-                            onClick = { if (!isLocked) onAddCellInRow(r) },
-                            enabled = !isLocked
+                                onLongClick = {
+                                    if (isLocked) unlockedRows = unlockedRows + r
+                                }
+                            ),
+                        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+                        elevation = CardDefaults.cardElevation(elevation)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("+")
+
+                            // Día
+                            Text(
+                                text = "Día ${r + 1}" +
+                                        (if (isRowLocked(r)) " 🔒" else "") +
+                                        (if (unlockedRows.contains(r)) " 🔓" else ""),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = when {
+                                    unlockedRows.contains(r) -> MaterialTheme.colorScheme.tertiary
+                                    isLocked -> Color.Gray
+                                    table.rowDates.containsKey(r) -> MaterialTheme.colorScheme.primary
+                                    else -> MaterialTheme.colorScheme.onSurface
+                                }
+                            )
+
+                            // Set verticales
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                rowList.forEachIndexed { c, value ->
+                                    val parts = value.split("x")
+                                    val reps = parts.getOrNull(0) ?: ""
+                                    val weight = parts.getOrNull(1) ?: ""
+
+                                    RepsWeightCell(
+                                        reps = reps,
+                                        weight = weight,
+                                        enabled = !isLocked,
+                                        onChange = { newReps, newW ->
+                                            if (!isLocked) {
+                                                val newValue = "${newReps}x${newW}"
+                                                onCellChange(tableIndex, r, c, newValue)
+                                                table.rowDates[r] = System.currentTimeMillis()
+                                            }
+                                        },
+                                        onUnlock = {
+                                            if (isLocked) unlockedRows = unlockedRows + r
+                                        }
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { if (!isLocked) onAddCellInRow(r) },
+                                    enabled = !isLocked
+                                ) { Text("+") }
+                            }
                         }
                     }
                 }
@@ -256,10 +286,14 @@ fun ExerciseExcelTable(
         }
     }
 
-    // Diálogo para mostrar la fecha
+
+    // =======================================
+    //      D I Á L O G O   D E   F E C H A
+    // =======================================
+
     if (showDateDialog) {
         val isLockedOriginal = isRowLocked(selectedRowIndex)
-        val isCurrentlyUnlocked = unlockedRows.contains(selectedRowIndex)
+        val isUnlocked = unlockedRows.contains(selectedRowIndex)
 
         AlertDialog(
             onDismissRequest = { showDateDialog = false },
@@ -267,24 +301,23 @@ fun ExerciseExcelTable(
             text = {
                 Column {
                     Text(
-                        text = if (selectedRowDate != null) {
+                        text = selectedRowDate?.let {
                             val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                            "Última modificación:\n${dateFormat.format(Date(selectedRowDate!!))}"
-                        } else {
-                            "Esta fila aún no ha sido modificada"
-                        }
+                            "Última modificación:\n${dateFormat.format(Date(it))}"
+                        } ?: "Esta fila aún no ha sido modificada"
                     )
-                    if (isLockedOriginal && !isCurrentlyUnlocked) {
-                        Spacer(modifier = Modifier.height(8.dp))
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (isLockedOriginal && !isUnlocked) {
                         Text(
-                            text = "🔒 Esta fila está bloqueada (más de 24 horas)\n\nMantén pulsado el nombre del día o cualquier celda para desbloquear temporalmente.",
+                            "🔒 Esta fila está bloqueada (más de 24h). Mantén pulsado para desbloquear.",
                             color = Color.Gray,
                             style = MaterialTheme.typography.bodySmall
                         )
-                    } else if (isCurrentlyUnlocked) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                    } else if (isUnlocked) {
                         Text(
-                            text = "🔓 Fila desbloqueada temporalmente para edición",
+                            "🔓 Fila desbloqueada temporalmente.",
                             color = MaterialTheme.colorScheme.tertiary,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -296,7 +329,7 @@ fun ExerciseExcelTable(
                     Text("Cerrar")
                 }
             },
-            dismissButton = if (isCurrentlyUnlocked) {
+            dismissButton = if (isUnlocked) {
                 {
                     TextButton(onClick = {
                         unlockedRows = unlockedRows - selectedRowIndex
@@ -308,33 +341,4 @@ fun ExerciseExcelTable(
             } else null
         )
     }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun LockableTableCell(
-    value: String,
-    onValueChange: (String) -> Unit,
-    isLocked: Boolean,
-    onUnlock: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
-        enabled = !isLocked,
-        singleLine = true,
-        modifier = modifier.combinedClickable(
-            onClick = { },
-            onLongClick = {
-                if (isLocked) {
-                    onUnlock()
-                }
-            }
-        ),
-        colors = TextFieldDefaults.colors(
-            disabledTextColor = Color.Gray,
-            disabledContainerColor = Color.LightGray.copy(alpha = 0.3f)
-        )
-    )
 }
