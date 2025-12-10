@@ -23,15 +23,6 @@ import com.haroun.gymi.persistence.ExerciseTable
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Versión optimizada de ExerciseExcelTable:
- * - Usa BasicTextField para menos sobrecarga.
- * - Celdas verticales (KG arriba, Reps abajo).
- * - Cards por fila (día) con alternancia de sombreado.
- * - Placeholders centrados.
- * - Validación para permitir enteros y decimales.
- */
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ExerciseExcelTable(
@@ -42,13 +33,11 @@ fun ExerciseExcelTable(
     onCellChange: (tableIndex: Int, row: Int, col: Int, value: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Estado local para diálogo/fecha/desbloqueos
     var showDateDialog by remember { mutableStateOf(false) }
     var selectedRowDate by remember { mutableStateOf<Long?>(null) }
     var selectedRowIndex by remember { mutableStateOf(-1) }
     var unlockedRows by remember { mutableStateOf(setOf<Int>()) }
 
-    // helper: locked if >24h since timestamp
     fun isRowLocked(rowIndex: Int): Boolean {
         val timestamp = table.rowDates[rowIndex] ?: return false
         val now = System.currentTimeMillis()
@@ -56,7 +45,6 @@ fun ExerciseExcelTable(
         return hoursPassed >= 24
     }
 
-    // Reusable small composable: field with centered placeholder + center text (BasicTextField)
     @Composable
     fun CenteredBasicField(
         value: String,
@@ -65,12 +53,13 @@ fun ExerciseExcelTable(
         onValueChange: (String) -> Unit,
         modifier: Modifier = Modifier
     ) {
-        // keep TextFieldValue local to avoid heavy recomposition from parent strings
-        var internal by remember(value) { mutableStateOf(TextFieldValue(text = value)) }
+        var internal by remember { mutableStateOf(TextFieldValue(text = value)) }
 
-        // Sync external -> internal when value changes from outside
         LaunchedEffect(value) {
-            if (value != internal.text) internal = TextFieldValue(text = value)
+            // SOLO sincroniza cuando el cambio viene REALMENTE del ViewModel
+            if (value != internal.text) {
+                internal = TextFieldValue(value)
+            }
         }
 
         Box(
@@ -91,15 +80,16 @@ fun ExerciseExcelTable(
             BasicTextField(
                 value = internal,
                 onValueChange = { tfv ->
-                    // keep only valid patterns - integers or decimals
                     val newText = tfv.text
+
+                    // Validación estricta pero no restrictiva
                     if (newText.matches(Regex("^\\d*(\\.\\d*)?$"))) {
                         internal = tfv
                         onValueChange(newText)
                     } else if (newText.isEmpty()) {
                         internal = tfv
                         onValueChange("")
-                    } // else ignore invalid char
+                    }
                 },
                 enabled = enabled,
                 textStyle = TextStyle(
@@ -107,14 +97,11 @@ fun ExerciseExcelTable(
                     fontSize = 14.sp,
                     lineHeight = 16.sp
                 ),
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
+                singleLine = true
             )
         }
     }
 
-    // Cell composed vertical: KG (top) + Reps (bottom)
     @Composable
     fun RepsWeightCell(
         reps: String,
@@ -124,17 +111,17 @@ fun ExerciseExcelTable(
         onUnlock: () -> Unit,
         modifier: Modifier = Modifier
     ) {
-        // Card that groups both subfields
         Card(
             modifier = modifier
-                .width(120.dp) // tamaño razonable para que no se corte en horizontal
+                .width(120.dp)
                 .padding(6.dp)
                 .combinedClickable(
                     onClick = {},
                     onLongClick = { if (!enabled) onUnlock() }
                 ),
             colors = CardDefaults.cardColors(
-                containerColor = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
+                containerColor = if (enabled) MaterialTheme.colorScheme.surface
+                else MaterialTheme.colorScheme.surfaceVariant
             ),
             elevation = CardDefaults.cardElevation(1.5.dp)
         ) {
@@ -145,7 +132,6 @@ fun ExerciseExcelTable(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // KG - arriba
                 CenteredBasicField(
                     value = weight,
                     placeholderText = "Kg",
@@ -154,10 +140,13 @@ fun ExerciseExcelTable(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Divider visual pequeña
-                Divider(modifier = Modifier.fillMaxWidth().height(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+                Divider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+                )
 
-                // REPS - abajo
                 CenteredBasicField(
                     value = reps,
                     placeholderText = "Reps",
@@ -170,7 +159,7 @@ fun ExerciseExcelTable(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Header: compact card con título y botón "Añadir día" (menos alto para dar más foco a la tabla)
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -201,15 +190,12 @@ fun ExerciseExcelTable(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // Table header (sets) + body. Horizontal scroll for sets.
         val hState = rememberScrollState()
+
         Column(modifier = Modifier.fillMaxWidth().horizontalScroll(hState)) {
-            // Header row: top-left empty + set labels
+
             Row(modifier = Modifier.padding(horizontal = 12.dp)) {
-                Text(
-                    text = "", // corner
-                    modifier = Modifier.width(92.dp)
-                )
+                Text(text = "", modifier = Modifier.width(92.dp))
                 table.data.firstOrNull()?.forEachIndexed { c, _ ->
                     Text(
                         text = "Set ${c + 1}",
@@ -223,11 +209,13 @@ fun ExerciseExcelTable(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Rows as cards (LazyColumn with keys)
             LazyColumn {
                 itemsIndexed(table.data, key = { idx, _ -> "row-$idx" }) { r, rowList ->
-                    // Alternate shaded background for rows for clarity
-                    val rowBg = if (r % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+
+                    val rowBg =
+                        if (r % 2 == 0) MaterialTheme.colorScheme.surface
+                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+
                     val rowCardElevation = if (r % 2 == 0) 0.dp else 2.dp
 
                     Card(
@@ -244,9 +232,11 @@ fun ExerciseExcelTable(
                                 .padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Day label
+
                             Text(
-                                text = "Día ${r + 1}${if (isRowLocked(r)) " 🔒" else ""}${if (unlockedRows.contains(r)) " 🔓" else ""}",
+                                text = "Día ${r + 1}" +
+                                        if (isRowLocked(r)) " 🔒" else "" +
+                                                if (unlockedRows.contains(r)) " 🔓" else "",
                                 modifier = Modifier
                                     .width(92.dp)
                                     .combinedClickable(
@@ -271,9 +261,7 @@ fun ExerciseExcelTable(
 
                             Spacer(modifier = Modifier.width(6.dp))
 
-                            // Cells: iterate sets (columns)
                             rowList.forEachIndexed { c, value ->
-                                // split stored value "repsxweight" into parts safely
                                 val parts = value.split("x", limit = 2)
                                 val reps = parts.getOrNull(0) ?: ""
                                 val weight = parts.getOrNull(1) ?: ""
@@ -285,7 +273,6 @@ fun ExerciseExcelTable(
                                     onChange = { newReps, newWeight ->
                                         val newVal = "${newReps}x${newWeight}"
                                         onCellChange(tableIndex, r, c, newVal)
-                                        // Update row date
                                         table.rowDates[r] = System.currentTimeMillis()
                                     },
                                     onUnlock = { unlockedRows = unlockedRows + r },
@@ -293,10 +280,14 @@ fun ExerciseExcelTable(
                                 )
                             }
 
-                            // Add cell button (for the row)
                             Spacer(modifier = Modifier.weight(1f))
+
                             IconButton(
-                                onClick = { if (!isRowLocked(r) || unlockedRows.contains(r)) onAddCellInRow(r) },
+                                onClick = {
+                                    if (!isRowLocked(r) || unlockedRows.contains(r)) {
+                                        onAddCellInRow(r)
+                                    }
+                                },
                                 enabled = !(isRowLocked(r) && !unlockedRows.contains(r))
                             ) {
                                 Text("+")
@@ -304,11 +295,10 @@ fun ExerciseExcelTable(
                         }
                     }
                 }
-            } // LazyColumn
-        } // Column horizontalScroll
-    } // Column root
+            }
+        }
+    }
 
-    // Fecha / diálogo de fila (igual que antes)
     if (showDateDialog) {
         val isLockedOriginal = isRowLocked(selectedRowIndex)
         val isCurrentlyUnlocked = unlockedRows.contains(selectedRowIndex)
@@ -344,9 +334,9 @@ fun ExerciseExcelTable(
                 }
             },
             confirmButton = {
-                Button(onClick = { showDateDialog = false }) {
-                    Text("Cerrar")
-                }
+                Button(onClick = {
+                    showDateDialog = false
+                }) { Text("Cerrar") }
             },
             dismissButton = if (isCurrentlyUnlocked) {
                 {

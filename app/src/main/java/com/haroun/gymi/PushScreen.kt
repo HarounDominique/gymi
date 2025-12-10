@@ -25,13 +25,13 @@ fun PushScreen(
     var showDialog by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
 
-    var actionIndex by remember { mutableStateOf<Int?>(null) } // índice del ejercicio al mantener pulsado
+    var actionIndex by remember { mutableStateOf<Int?>(null) }
     var renameDialog by remember { mutableStateOf(false) }
     var renameTitle by remember { mutableStateOf("") }
-    var renameIndex by remember { mutableStateOf<Int?>(null) } // índice del ejercicio a renombrar
+    var renameIndex by remember { mutableStateOf<Int?>(null) }
 
-    var deleteIndex by remember { mutableStateOf<Int?>(null) } // índice del ejercicio a borrar
-    var confirmDeleteDialog by remember { mutableStateOf(false) } // mostrar diálogo confirmación
+    var deleteIndex by remember { mutableStateOf<Int?>(null) }
+    var confirmDeleteDialog by remember { mutableStateOf(false) }
 
     val routeBase = when (viewModel) {
         is PushViewModel -> "push"
@@ -171,18 +171,28 @@ fun PushScreen(
     // Diálogo renombrar ejercicio
     if (renameDialog && renameIndex != null) {
         AlertDialog(
-            onDismissRequest = { renameDialog = false },
+            onDismissRequest = { renameDialog = false; renameIndex = null },
             title = { Text("Renombrar ejercicio") },
-            text = { TextField(value = renameTitle, onValueChange = { renameTitle = it }) },
+            text = {
+                TextField(
+                    value = renameTitle,
+                    onValueChange = { renameTitle = it },
+                    label = { Text("Nombre") }
+                )
+            },
             confirmButton = {
                 Button(onClick = {
-                    viewModel.tables[renameIndex!!].title = renameTitle
+                    val index = renameIndex!!
+                    viewModel.renameTable(index, renameTitle)
                     renameDialog = false
                     renameIndex = null
                 }) { Text("Guardar") }
             },
             dismissButton = {
-                Button(onClick = { renameDialog = false; renameIndex = null }) { Text("Cancelar") }
+                Button(onClick = {
+                    renameDialog = false
+                    renameIndex = null
+                }) { Text("Cancelar") }
             }
         )
     }
