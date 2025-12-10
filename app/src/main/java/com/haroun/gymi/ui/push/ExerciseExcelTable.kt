@@ -95,7 +95,8 @@ fun ExerciseExcelTable(
                 textStyle = TextStyle(
                     color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
-                    lineHeight = 16.sp
+                    lineHeight = 16.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 ),
                 singleLine = true
             )
@@ -212,9 +213,13 @@ fun ExerciseExcelTable(
             LazyColumn {
                 itemsIndexed(table.data, key = { idx, _ -> "row-$idx" }) { r, rowList ->
 
-                    val rowBg =
-                        if (r % 2 == 0) MaterialTheme.colorScheme.surface
-                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+                    // Color alterno accesible para modo claro y oscuro
+                    val rowBg = if (r % 2 == 0) {
+                        MaterialTheme.colorScheme.surface
+                    } else {
+                        // Variante de superficie recomendada por Material3 para contraste suave
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+                    }
 
                     val rowCardElevation = if (r % 2 == 0) 0.dp else 2.dp
 
