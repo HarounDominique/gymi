@@ -1,7 +1,6 @@
 package com.haroun.gymi.ui.push
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -9,6 +8,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,11 +21,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.haroun.gymi.domain.model.ProgressPoint
 import com.haroun.gymi.persistence.ExerciseTable
+import com.haroun.gymi.progress.ExerciseProgressScreen
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseExcelTable(
     table: ExerciseTable,
@@ -45,6 +49,9 @@ fun ExerciseExcelTable(
         return hoursPassed >= 24
     }
 
+    // Estado para mostrar modal de progreso
+    var showProgress by remember { mutableStateOf(false) }
+
     @Composable
     fun CenteredBasicField(
         value: String,
@@ -56,7 +63,6 @@ fun ExerciseExcelTable(
         var internal by remember { mutableStateOf(TextFieldValue(text = value)) }
 
         LaunchedEffect(value) {
-            // SOLO sincroniza cuando el cambio viene REALMENTE del ViewModel
             if (value != internal.text) {
                 internal = TextFieldValue(value)
             }
@@ -81,14 +87,9 @@ fun ExerciseExcelTable(
                 value = internal,
                 onValueChange = { tfv ->
                     val newText = tfv.text
-
-                    // Validación estricta pero no restrictiva
-                    if (newText.matches(Regex("^\\d*(\\.\\d*)?$"))) {
+                    if (newText.matches(Regex("^\\d*(\\.\\d*)?$")) || newText.isEmpty()) {
                         internal = tfv
                         onValueChange(newText)
-                    } else if (newText.isEmpty()) {
-                        internal = tfv
-                        onValueChange("")
                     }
                 },
                 enabled = enabled,
@@ -161,11 +162,14 @@ fun ExerciseExcelTable(
 
     Column(modifier = modifier.fillMaxWidth()) {
 
+        // --- HEADER CARD ---
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 6.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
             elevation = CardDefaults.cardElevation(2.dp)
         ) {
             Row(
@@ -180,6 +184,14 @@ fun ExerciseExcelTable(
                     maxLines = 1,
                     modifier = Modifier.weight(1f)
                 )
+
+                // 📊 Botón de progreso
+                IconButton(onClick = { showProgress = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Info, // icono seguro para prueba
+                        contentDescription = "Ver progreso"
+                    )
+                }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
@@ -213,11 +225,9 @@ fun ExerciseExcelTable(
             LazyColumn {
                 itemsIndexed(table.data, key = { idx, _ -> "row-$idx" }) { r, rowList ->
 
-                    // Color alterno accesible para modo claro y oscuro
                     val rowBg = if (r % 2 == 0) {
                         MaterialTheme.colorScheme.surface
                     } else {
-                        // Variante de superficie recomendada por Material3 para contraste suave
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
                     }
 
@@ -301,6 +311,26 @@ fun ExerciseExcelTable(
                     }
                 }
             }
+        }
+    }
+
+    // --- Modal Bottom Sheet para progreso ---
+    if (showProgress) {
+        ModalBottomSheet(
+            onDismissRequest = { showProgress = false },
+            modifier = Modifier.fillMaxHeight(0.9f)
+        ) {
+            // Datos de prueba para ver la gráfica
+            val fakePoints = listOf(
+                ProgressPoint(date = System.currentTimeMillis() - 3_000_000, weight = 80f, reps = 6),
+                ProgressPoint(date = System.currentTimeMillis() - 2_000_000, weight = 82.5f, reps = 6),
+                ProgressPoint(date = System.currentTimeMillis() - 1_000_000, weight = 85f, reps = 5)
+            )
+
+            // Mostramos la gráfica usando la pantalla de progreso
+            ExerciseProgressScreen(
+                table = table.copy(data = table.data) // solo para pasar algo válido
+            )
         }
     }
 
