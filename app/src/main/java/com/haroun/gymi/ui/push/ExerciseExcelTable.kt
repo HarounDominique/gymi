@@ -185,10 +185,10 @@ fun ExerciseExcelTable(
                     modifier = Modifier.weight(1f)
                 )
 
-                // 📊 Botón de progreso
+                // Botón de gráfica de progreso
                 IconButton(onClick = { showProgress = true }) {
                     Icon(
-                        imageVector = Icons.Default.Info, // icono seguro para prueba
+                        imageVector = Icons.Default.DateRange, // icono seguro para prueba
                         contentDescription = "Ver progreso"
                     )
                 }
