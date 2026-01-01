@@ -14,6 +14,9 @@ navigationCompose = "2.9.5"
 navigationComposeVersion = "2.7.3"
 ui = "1.9.5"
 foundation = "1.10.0"
+uiGraphics = "1.10.0"
+inkStrokes = "1.0.0"
+inkStrokesJvm = "1.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -36,6 +39,9 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 kotlinx-serialization-json = { module = "kotlinx.serialization:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
+androidx-ink-strokes = { group = "androidx.ink", name = "ink-strokes", version.ref = "inkStrokes" }
+androidx-ink-strokes-jvm = { group = "androidx.ink", name = "ink-strokes-jvm", version.ref = "inkStrokesJvm" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

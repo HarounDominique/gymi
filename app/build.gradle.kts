@@ -65,6 +65,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation(libs.androidx.ui)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ink.strokes)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
